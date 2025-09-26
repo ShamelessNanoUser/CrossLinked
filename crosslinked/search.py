@@ -81,8 +81,11 @@ class CrossLinked:
             page.pause()
 
             while self.clicks != attempt:
-                
+                Log.info("{:<3} {}".format(len(self.results), url))
+
                 try: 
+                    self.page_parser(page.content())
+
                     if self.search_engine == 'duckduckgo':
                         page.click('#more-results')
                         page.wait_for_load_state("networkidle")
@@ -90,16 +93,6 @@ class CrossLinked:
                     if self.search_engine == 'google':
                         page.click('a[aria-label="Page %s"]' % (attempt+2)) 
                         page.wait_for_load_state("networkidle")
-
-                    http_code = response.status
-
-                    if http_code != 200:
-                        Log.info("{:<3} {} ({})".format(len(self.results), url, http_code))
-                        Log.warn('None 200 response, exiting search ({})'.format(http_code))
-                        break
-
-                    self.page_parser(page.content())
-                    Log.info("{:<3} {} ({})".format(len(self.results), url, http_code))
 
                     attempt+=1
                     sleep(self.jitter)
