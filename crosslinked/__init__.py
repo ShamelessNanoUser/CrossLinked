@@ -31,14 +31,15 @@ def cli():
     args = argparse.ArgumentParser(description="", formatter_class=argparse.RawTextHelpFormatter, usage=argparse.SUPPRESS)
     args.add_argument('--debug', dest="debug", action='store_true', help=argparse.SUPPRESS)
     args.add_argument('-t', dest='timeout', type=float, default=15, help='Max timeout per search (Default=15)')
-    args.add_argument('-j', dest='jitter', type=float, default=1, help='Jitter between requests (Default=1)')
+    args.add_argument('-j', dest='jitter', type=float, default=3, help='Jitter between requests (Default=3)')
+    args.add_argument('-c', dest='clicks', type=int, default=5, help='amount of pages to view on the search engine (Default=5)')
     args.add_argument(dest='company_name', nargs='?', help='Target company name')
 
     s = args.add_argument_group("Search arguments")
-    s.add_argument('--search', dest='engine', default='google,bing', type=lambda x: utils.delimiter2list(x), help='Search Engine (Default=\'google,bing\')')
+    s.add_argument('--search', dest='engine', default='duckduckgo,google,bing', type=lambda x: utils.delimiter2list(x), help='Search Engine (Default=\'duckduckgo,google,bing\')')
 
     o = args.add_argument_group("Output arguments")
-    o.add_argument('-f', dest='nformat', type=str, required=True, help='Format names, ex: \'domain\{f}{last}\', \'{first}.{last}@domain.com\'')
+    o.add_argument('-f', dest='nformat', type=str, required=True, help='Format names, ex: \'{f}.{last}@domain.com\', \'{first}.{middle}.{last}@domain.com\'')
     o.add_argument('-o', dest='outfile', type=str, default='names', help='Change name of output file (omit_extension)')
 
     p = args.add_argument_group("Proxy arguments")
@@ -53,7 +54,7 @@ def start_scrape(args):
     Log.info("Searching {} for valid employee names at \"{}\"".format(', '.join(args.engine), args.company_name))
 
     for search_engine in args.engine:
-        c = CrossLinked(search_engine,  args.company_name, args.timeout, 3, args.proxy, args.jitter)
+        c = CrossLinked(search_engine,  args.company_name, args.timeout, args.clicks, 3, args.proxy,  args.jitter)
         if search_engine in c.url.keys():
             tmp += c.search()
     return tmp
@@ -85,26 +86,29 @@ def format_names(args, data, logger):
 
 
 def nformatter(nformat, name):
-    # Get position of name values in text
-    tmp = nformat.split('}')
-    f_position = int(re.search(r'(-?\d+)', tmp[0]).group(0)) if ':' in tmp[0] else 0
-    l_position = int(re.search(r'(-?\d+)', tmp[1]).group(0)) if ':' in tmp[1] else -1
+    name_parts = name.split()
+    if not name_parts:
+        return nformat  
+   
+    first_name = name_parts[0]
+    last_name = name_parts[-1]
+    middle_name = ' '.join(name_parts[1:-1]) if len(name_parts) > 2 else ''
 
-    # Extract names from raw text
-    tmp = name.split(' ')
-    try:
-        f_name = tmp[f_position] if len(tmp) > 2 else tmp[0]
-        l_name = tmp[l_position] if len(tmp) > 2 else tmp[-1]
-    except:
-        f_name = tmp[0]
-        l_name = tmp[-1]
+    val = nformat
+    val = val.replace('{f}', first_name[0])
+    val = val.replace('{first}', first_name)
 
-    # Use replace function to create final output
-    val = re.sub(r'-?\d+:', '', nformat)
-    val = val.replace('{f}', f_name[0])
-    val = val.replace('{first}', f_name)
-    val = val.replace('{l}', l_name[0])
-    val = val.replace('{last}', l_name)
+    if middle_name == '':
+        val = val.replace('{m}.', '')
+        val = val.replace('{middle}.', '')
+    else: 
+        val = val.replace('{m}', middle_name[0])
+        val = val.replace('{middle}', middle_name)
+        val = val.replace(' ', '.')
+
+    val = val.replace('{l}', last_name[0])
+    val = val.replace('{last}', last_name)
+
     return val
 
 
