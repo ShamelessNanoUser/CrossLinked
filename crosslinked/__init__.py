@@ -69,7 +69,7 @@ def start_parse(args):
         csv_data = reader(f, delimiter=',')
         next(csv_data)
         for r in csv_data:
-            tmp.append({'name': r[2].strip()}) if r[2] else False
+            tm args.jitterp.append({'name': r[2].strip()}) if r[2] else False
     return tmp
 
 
