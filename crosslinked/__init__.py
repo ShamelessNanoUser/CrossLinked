@@ -12,7 +12,7 @@ from crosslinked.search import CrossLinked
 
 def banner():
 
-    VERSION = 'v0.3.0'
+    VERSION = 'v0.3.1'
 
     print('''
      _____                    _             _            _ 
