@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from crosslinked.logger import Log
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
+from playwright._impl._errors import TimeoutError
 
 csv = logging.getLogger('cLinked_csv')
 
@@ -81,10 +82,10 @@ class CrossLinked:
             page.pause()
 
             while self.clicks != attempt:
-                Log.info("{:<3} {}".format(len(self.results), url))
-
+            
                 try: 
                     self.page_parser(page.content())
+                    Log.info("{:<3} {}".format(len(self.results), url))
 
                     if self.search_engine == 'duckduckgo':
                         page.click('#more-results')
@@ -96,11 +97,18 @@ class CrossLinked:
 
                     attempt+=1
                     sleep(self.jitter)
+                except TimeoutError:
+                    Log.info("Reached the end of results pages on {}, continuing...".format(self.search_engine))
+                    attempt = self.clicks
+                    continue
+
                 except KeyboardInterrupt:
                     Log.warn("Key event detected, exiting search...")
                     break
 
             browser.close()
+
+        print(self.results)
 
         return self.results
 
